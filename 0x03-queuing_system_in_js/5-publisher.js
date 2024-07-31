@@ -11,8 +11,6 @@ client.on('connect', () => {
     console.log('Redis client connected to the server')
 })
 
-client.subscribe('holberton school channel')
-
 const publishMessage = async (message, time) => {
     setTimeout(() => {
         console.log(`About to send ${message}`)
