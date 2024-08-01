@@ -53,8 +53,8 @@ app.get('/list_products', (req, res) => {
     res.json(listProducts);
 })
 
-app.get('/list_products/:itemId(\\d+)', (res, res) => {
-    const itemId = Number.parseInt(req.prams.itemId)
+app.get('/list_products/:itemId(\\d+)', (req, res) => {
+    const itemId = Number.parseInt(req.params.itemId)
     const productItem = getItemById(Number.parseInt(itemId))
 
     if (!productItem) {
@@ -68,3 +68,43 @@ app.get('/list_products/:itemId(\\d+)', (res, res) => {
             res.json(productItem);
         })
 })
+
+app.get('/reserve_product/:itemId', (req, res) => {
+  const itemId = Number.parseInt(req.params.itemId)
+  const productItem = getItemById(Number.parseInt(itemId))
+
+  if (!productItem) {
+      res.json({ status: 'Product not found' });
+      return;
+  }
+
+  getCurrentReservedStockById(itemId)
+    .then((result) => Number.parseInt(result || 0))
+    .then((reserveStock) => {
+      if (reserveStock >= productItem.initialAvailableQuantity) {
+        res.json({ status: 'Not enough stock available', itemId });
+        return;
+      }
+      reserveStockById(itemId, reserveStock + 1)
+        .then(() => {
+          res.json({ status: 'Reservation confirmed', itemId });
+        });
+    })  
+})
+
+const resetProductsStock = () => {
+  return Promise.all(
+    listProducts.map(
+      item => promisify(client.SET).bind(client)(`item.${item.itemId}`, 0),
+    )
+  )
+}
+
+app.listen(PORT, () => {
+  resetProductsStock()
+    .then(() => {
+      console.log(`API available on localhost port ${PORT}`);
+    });
+})
+
+export default app;
